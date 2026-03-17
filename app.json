@@ -3,6 +3,7 @@
     "name": "LittleLens_temp",
     "slug": "LittleLens_temp",
     "version": "1.0.0",
+    "scheme": "littlelens",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
