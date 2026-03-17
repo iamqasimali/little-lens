@@ -25,6 +25,18 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-sqlite",
+      "react-native-vision-camera",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "LittleLens needs camera access to scan product barcodes.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-router"
+    ]
   }
 }
