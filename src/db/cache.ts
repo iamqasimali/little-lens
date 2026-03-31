@@ -32,7 +32,12 @@ export async function getCachedProduct(barcode: string) {
     return null;
   }
 
-  return JSON.parse(row.data);
+  try {
+    return JSON.parse(row.data);
+  } catch {
+    await db.runAsync('DELETE FROM product_cache WHERE barcode = ?', [barcode]);
+    return null;
+  }
 }
 
 export async function cacheProduct(barcode: string, data: object) {

@@ -64,14 +64,17 @@ function PillarCard({ pillarKey, score }: { pillarKey: string; score: PillarScor
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function ProductScreen() {
-  const { barcode } = useLocalSearchParams<{ barcode: string }>();
+  const params = useLocalSearchParams<{ barcode?: string | string[] }>();
+  const barcode = Array.isArray(params.barcode) ? params.barcode[0] : params.barcode;
   const { recentScans, currentProduct } = useProductStore();
 
   // Prefer currentProduct if it matches, otherwise look up from history
   const product =
-    currentProduct?.barcode === barcode
+    !!barcode && currentProduct?.barcode === barcode
       ? currentProduct
-      : recentScans.find((p) => p.barcode === barcode);
+      : barcode
+        ? recentScans.find((p) => p.barcode === barcode)
+        : undefined;
 
   if (!product) {
     return (

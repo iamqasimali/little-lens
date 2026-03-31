@@ -1,12 +1,13 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { getCachedProduct, cacheProduct } from '../../src/db/cache';
 import { scoreProduct } from '../../src/scoring';
 import { fetchProductByBarcode } from '../../src/services/openFoodFacts';
 import { useProductStore } from '../../src/store/productStore';
 import { ProductPassport } from '../../src/types';
+import { parseIngredients } from '../../src/utils/parseIngredients';
 
 export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -15,6 +16,13 @@ export default function ScanScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const { setCurrentProduct, addToHistory } = useProductStore();
   const router = useRouter();
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    };
+  }, []);
 
   async function handleBarcodeScan({ data: barcode }: { data: string }) {
     if (!scanning || loading) return;
@@ -39,7 +47,7 @@ export default function ScanScreen() {
         name: raw.product_name ?? 'Unknown Product',
         brand: raw.brands ?? 'Unknown Brand',
         imageUrl: raw.image_url,
-        ingredients: raw.ingredients_text?.split(',').map((s: string) => s.trim()) ?? [],
+        ingredients: parseIngredients(raw.ingredients_text),
         scores: scoreProduct(raw),
         scannedAt: new Date().toISOString(),
       };
@@ -47,12 +55,20 @@ export default function ScanScreen() {
       setCurrentProduct(passport);
       addToHistory(passport);
       router.push(`/product/${barcode}`);
-    } catch {
-      setErrorMsg('Network error. Check your connection and try again.');
+    } catch (e) {
+      console.error('Barcode scan lookup failed', e);
+      const message =
+        e instanceof Error && /Open Food Facts API error/i.test(e.message)
+          ? 'Service error. Try again in a moment.'
+          : e instanceof TypeError
+            ? 'Network error. Check your connection and try again.'
+            : 'Something went wrong. Try scanning again.';
+      setErrorMsg(message);
     } finally {
       setLoading(false);
       // Re-enable scanning after 3 seconds (gives time to navigate away)
-      setTimeout(() => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = setTimeout(() => {
         setScanning(true);
         setErrorMsg(null);
       }, 3000);
